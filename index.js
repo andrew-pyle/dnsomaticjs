@@ -1,56 +1,62 @@
 #!/usr/bin/env node
-const requestPromise = require("request-promise-native");
 
-// Get Public IP
+const fetch = require("node-fetch");
+
+// Public IP Sources
+// Must return ONLY the IP address in TEXT format!
 const publicIpSources = [
   "https://ipv4.icanhazip.com/", // "74.174.209.49\n"
   "https://api.ipify.org/" // "74.174.209.49"
 ];
 
+/**
+ * Get the Public IP address by recursively trying URLs until IP successfully obtained
+ * @param {string[]} ipSourceUrls Array of URLs to try to obtain public IP address
+ * @param {number} urlIndexToRequest Index of URL array. Required for recursive call.
+ */
+async function getPublicIp(ipSourceUrls, urlIndexToRequest = 0) {
+  try {
+    const res = await fetch(ipSourceUrls[urlIndexToRequest]);
+    if (res.ok) {
+      const textOfResponse = await res.text();
+      const cleanTextOfResponse = textOfResponse.trim();
+      return cleanTextOfResponse;
+    } else throw Error(`Response not OK. Status code was ${res.status}`);
+  } catch (err) {
+    const newUrlIndex = urlIndexToRequest + 1;
+    if (newUrlIndex + 1 > ipSourceUrls.length)
+      throw Error("Failed to obtain public IP Address.");
+    return await getPublicIp(ipSourceUrls, newUrlIndex);
+  }
+}
+
 async function postDNSOMatic(publicIp) {
   //  Send Public IP to DNS-O-Matic
   const username = "";
   const password = "";
-  const yourhostname = "all.dnsomatic.com";
-  const ipaddress = "";
-  const post = `https://${username}:${password}@updates.dnsomatic.com/nic/update?hostname=${yourhostname}&myip=${ipaddress}&wildcard=NOCHG&mx=NOCHG&backmx=NOCHG`;
+  const hostnamesToChange = "all.dnsomatic.com";
+
+  const post = `https://${username}:${password}@updates.dnsomatic.com/nic/update?hostname=${hostnamesToChange}&myip=${publicIp}&wildcard=NOCHG&mx=NOCHG&backmx=NOCHG`;
   try {
-    const response = await requestPromise(post);
-    return response;
+    const res = await fetch(post);
+    const resText = await res.text();
+    const resTextTrim = resText.trim();
+    return resTextTrim;
   } catch (err) {
     console.error(err);
   }
 }
 
-function logNetworkErrorToUser(error) {
-  console.error("Public IP address source failed.");
-  console.error(error);
-}
-
-// TODO Fix this manual looping-type thing with promises
-// TODO Input credentials from process.env
+// Main
+// IIFE because top-level await isn't available yet.
 (async () => {
   try {
-    // First Public IP source
-    const ipSource = publicIpSources[0];
-    console.log(`Obtaining public IP address from ${ipSource}`);
-    const publicIp = await requestPromise(ipSource);
+    // Get public IP address
+    const publicIp = await getPublicIp(publicIpSources);
     console.log(`Public IP is: ${publicIp}`);
-    const res = await postDNSOMatic(publicIp);
-    console.log("DNS-O-Matic Server responded with: " + res);
-    return;
+    const dnsOMaticReply = await postDNSOMatic(publicIp);
+    console.log("DNS-O-Matic Server responded with: " + dnsOMaticReply);
   } catch (err) {
-    logNetworkErrorToUser(err);
-  }
-  // Fallback IP source. Only runs after an error in the first source.
-  try {
-    const ipSource = publicIpSources[1];
-    console.log(`Obtaining public IP address from ${ipSource}`);
-    const publicIp = await requestPromise(ipSource);
-    console.log(`Public IP is: ${publicIp}`);
-    const res = await postDNSOMatic(publicIp);
-    console.log("DNS-O-Matic Server responded with: " + res);
-  } catch (err) {
-    logNetworkErrorToUser(err);
+    console.error(err);
   }
 })();
