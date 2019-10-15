@@ -3,3 +3,6 @@
 
 # Node & NPM
 node_modules/
+
+# Secrets
+config.js
