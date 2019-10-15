@@ -1,7 +1,34 @@
 #!/usr/bin/env node
 
 const fetch = require("node-fetch");
-const { username, password } = require("./config.js");
+var argv = require("minimist")(process.argv.slice(2));
+
+// Process credentials
+let username, password, config;
+// Try to load config.js but preferentially use command line arguments over config.js
+try {
+  config = require("./config.js");
+  username = config.username;
+  password = config.password;
+} catch (err) {
+  console.warn("Credentials not read from config.js file.");
+}
+// Prevent using both -u & --username
+if (argv.u && argv.username)
+  throw Error(
+    "Both -u and --username options supplied. Use one or the other please."
+  );
+// Prevent using both -p & --password
+if (argv.p && argv.password)
+  throw Error(
+    "Both -p and --password options supplied. Use one or the other please."
+  );
+// Load username & password from command line, if present
+if (argv.u) username = argv.u;
+if (argv.p) password = argv.p;
+
+// Abort if a credential is missing
+if (!username || !password) throw Error("Either username or password missing");
 
 // Public IP Sources
 // Must return ONLY the IP address in TEXT format!
