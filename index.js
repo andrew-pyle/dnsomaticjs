@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const fetch = require("node-fetch");
+const { username, password } = require("./config.js");
 
 // Public IP Sources
 // Must return ONLY the IP address in TEXT format!
@@ -30,10 +31,8 @@ async function getPublicIp(ipSourceUrls, urlIndexToRequest = 0) {
   }
 }
 
-async function postDNSOMatic(publicIp) {
+async function postDNSOMatic(publicIp, username, password) {
   //  Send Public IP to DNS-O-Matic
-  const username = "";
-  const password = "";
   const hostnamesToChange = "all.dnsomatic.com";
 
   const post = `https://${username}:${password}@updates.dnsomatic.com/nic/update?hostname=${hostnamesToChange}&myip=${publicIp}&wildcard=NOCHG&mx=NOCHG&backmx=NOCHG`;
@@ -54,7 +53,7 @@ async function postDNSOMatic(publicIp) {
     // Get public IP address
     const publicIp = await getPublicIp(publicIpSources);
     console.log(`Public IP is: ${publicIp}`);
-    const dnsOMaticReply = await postDNSOMatic(publicIp);
+    const dnsOMaticReply = await postDNSOMatic(publicIp, username, password);
     console.log("DNS-O-Matic Server responded with: " + dnsOMaticReply);
   } catch (err) {
     console.error(err);
