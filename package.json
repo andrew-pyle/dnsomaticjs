@@ -19,7 +19,7 @@
   "license": "ISC",
   "dependencies": {
     "minimist": "^1.2.3",
-    "node-fetch": "^2.6.0"
+    "node-fetch": "^2.6.1"
   },
   "devDependencies": {
     "husky": "^3.0.9",
